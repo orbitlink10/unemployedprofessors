@@ -1432,6 +1432,7 @@ if (!function_exists('defaultHomepageContent')) {
     function defaultHomepageContent(): array
     {
         return [
+            'logo_path' => null,
             'hero' => [
                 'eyebrow' => 'Trusted by 25k+ students',
                 'cta_pill' => 'Fast delivery · Free revisions',
@@ -3465,6 +3466,8 @@ Route::post('/admin/homepage', function (\Illuminate\Http\Request $request) {
     }
 
     $data = $request->validate([
+        'logo' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:2048|dimensions:max_width=4000,max_height=4000',
+        'remove_logo' => 'nullable|boolean',
         'hero_eyebrow' => 'required|string|max:255',
         'hero_cta_pill' => 'required|string|max:255',
         'hero_title_prefix' => 'required|string|max:255',
@@ -3538,7 +3541,28 @@ Route::post('/admin/homepage', function (\Illuminate\Http\Request $request) {
         'seo_html' => trim((string) ($data['seo_html'] ?? '')),
     ];
 
+    $previousLogo = loadHomepageContent()['logo_path'] ?? null;
+    $content['logo_path'] = $previousLogo;
+    if ($request->hasFile('logo')) {
+        $logo = $request->file('logo');
+        $directory = public_path('uploads/branding');
+        if (!is_dir($directory)) {
+            mkdir($directory, 0755, true);
+        }
+        $filename = (string) \Illuminate\Support\Str::uuid().'.'.$logo->extension();
+        $logo->move($directory, $filename);
+        $content['logo_path'] = 'uploads/branding/'.$filename;
+    } elseif ($request->boolean('remove_logo')) {
+        $content['logo_path'] = null;
+    }
+
     saveHomepageContent($content);
+
+    if ($previousLogo && $previousLogo !== $content['logo_path']
+        && preg_match('~^uploads/branding/[a-f0-9-]+\.(jpg|jpeg|png|webp|gif)$~', $previousLogo)
+        && is_file(public_path($previousLogo))) {
+        unlink(public_path($previousLogo));
+    }
 
     return back()->with('homepage_saved', 'Homepage content updated successfully.');
 })->name('admin.homepage.update');

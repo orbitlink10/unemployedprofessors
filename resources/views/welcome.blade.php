@@ -72,6 +72,7 @@
         }
 
         .brand .text strong { color: var(--blue); }
+        .brand .logo { display:block; max-width:200px; max-height:48px; width:auto; height:auto; object-fit:contain; }
 
         .menu {
             display: flex;
@@ -342,8 +343,12 @@
 <header>
     <div class="nav">
         <a class="brand" href="{{ url('/') }}">
+            @if(!empty($homepage['logo_path']))
+                <img class="logo" src="{{ asset($homepage['logo_path']) }}" alt="BoomPapers">
+            @else
             <span class="mark">BP</span>
             <span class="text">Boom<strong>Papers</strong></span>
+            @endif
         </a>
         <nav class="menu">
             <a href="{{ url('/') }}" class="active">Home</a>

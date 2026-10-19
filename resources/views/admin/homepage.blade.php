@@ -40,6 +40,9 @@
         .color-row { display:flex; gap:10px; align-items:center; }
         .color-row input[type="color"] { width:56px; padding:4px; height:44px; }
         .footer-actions { display:flex; justify-content:flex-end; }
+        .logo-preview { display:block; max-width:100%; width:auto; height:64px; object-fit:contain; object-position:left; }
+        .logo-remove { display:flex; align-items:center; gap:8px; text-transform:none; }
+        .logo-remove input { width:auto; }
         .editor-label {
             font-size: 18px;
             font-weight: 800;
@@ -103,7 +106,7 @@
             <button form="homepageForm" type="submit" class="btn btn-primary">Save Homepage</button>
         </div>
 
-        <div class="hint">Update hero copy, trust badges, highlight cards, and the long-form homepage content shown on the public site.</div>
+        <div class="hint">Update the logo, hero copy, trust badges, highlight cards, and the long-form homepage content shown on the public site.</div>
 
         @if(session('homepage_saved'))
             <div class="ok">{{ session('homepage_saved') }}</div>
@@ -112,8 +115,32 @@
             <div class="err">{{ $errors->first() }}</div>
         @endif
 
-        <form id="homepageForm" action="{{ route('admin.homepage.update') }}" method="POST" style="display:grid; gap:16px;">
+        <form id="homepageForm" action="{{ route('admin.homepage.update') }}" method="POST" enctype="multipart/form-data" style="display:grid; gap:16px;">
             @csrf
+
+            <section class="panel">
+                <div class="panel-head">
+                    <h2>Homepage Logo</h2>
+                    <div class="panel-note">Branding shown in the public homepage header.</div>
+                </div>
+                <div class="field">
+                    @if(!empty($homepage['logo_path']))
+                        <img class="logo-preview" src="{{ asset($homepage['logo_path']) }}" alt="Current homepage logo">
+                    @else
+                        <div class="hint">Currently using the default BoomPapers branding.</div>
+                    @endif
+                    <label for="logo">Upload or replace logo</label>
+                    <input id="logo" type="file" name="logo" accept="image/png,image/jpeg,image/webp,image/gif" aria-describedby="logo-help">
+                    <div id="logo-help" class="hint">PNG, JPG, WebP or GIF. Maximum 2 MB and 4000 × 4000 pixels. A wide logo with a transparent background works best. Choose a file and save the homepage to apply it.</div>
+                    <img id="logo-preview" class="logo-preview" alt="Selected logo preview" hidden style="display:none;">
+                    @if(!empty($homepage['logo_path']))
+                        <label class="logo-remove" for="remove_logo">
+                            <input id="remove_logo" type="checkbox" name="remove_logo" value="1" @checked(old('remove_logo'))>
+                            Restore default branding (a new upload takes priority)
+                        </label>
+                    @endif
+                </div>
+            </section>
 
             <section class="panel">
                 <div class="panel-head">
@@ -206,6 +233,21 @@
 </div>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
+        const logoInput = document.getElementById('logo');
+        const logoPreview = document.getElementById('logo-preview');
+        let logoPreviewUrl;
+        logoInput?.addEventListener('change', () => {
+            if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
+            const file = logoInput.files[0];
+            logoPreview.hidden = !file;
+            logoPreview.style.display = file ? 'block' : 'none';
+            if (file) {
+                logoPreviewUrl = URL.createObjectURL(file);
+                logoPreview.src = logoPreviewUrl;
+            } else {
+                logoPreview.removeAttribute('src');
+            }
+        });
         const editorField = document.getElementById('seo_html');
         const homepageForm = document.getElementById('homepageForm');
 
